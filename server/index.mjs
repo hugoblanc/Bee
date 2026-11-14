@@ -12,6 +12,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync } from 'node:fs';
+import { cleanPush } from './sync-core.mjs';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DIST = join(ROOT, 'dist');
@@ -42,59 +43,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS observations_rev ON observations (rev);
 `);
 
-// ---------- Validation ----------
-const ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
-const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
-const num = (v, min, max) => (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? v : null);
-const time = (v) => num(v, 1_600_000_000_000, Date.now() + 86_400_000);
-
-function cleanHunt(h) {
-  if (!h || !ID_RE.test(h.id ?? '')) return null;
-  const updatedAt = time(h.updatedAt);
-  const createdAt = time(h.createdAt);
-  if (updatedAt === null || createdAt === null) return null;
-  const nestLat = num(h.nest?.lat, -90, 90);
-  const nestLng = num(h.nest?.lng, -180, 180);
-  return {
-    id: h.id,
-    name: str(h.name, 120) || 'Recherche sans nom',
-    createdAt,
-    updatedAt,
-    deleted: h.deleted === true,
-    nest:
-      nestLat !== null && nestLng !== null
-        ? { lat: nestLat, lng: nestLng, foundAt: time(h.nest.foundAt) ?? updatedAt, note: str(h.nest.note, 500), author: str(h.nest.author, 60) }
-        : null,
-  };
-}
-
-function cleanObservation(o) {
-  if (!o || !ID_RE.test(o.id ?? '') || !ID_RE.test(o.huntId ?? '')) return null;
-  const lat = num(o.lat, -90, 90);
-  const lng = num(o.lng, -180, 180);
-  const bearing = num(o.bearing, 0, 360);
-  const updatedAt = time(o.updatedAt);
-  const observedAt = time(o.observedAt);
-  if (lat === null || lng === null || bearing === null || updatedAt === null || observedAt === null) return null;
-  return {
-    id: o.id,
-    huntId: o.huntId,
-    lat,
-    lng,
-    bearing,
-    mapBearing: num(o.mapBearing, 0, 360),
-    compassBearing: num(o.compassBearing, 0, 360),
-    roundTripSeconds: num(o.roundTripSeconds, 1, 7200),
-    roundTrips: Array.isArray(o.roundTrips) ? o.roundTrips.map((t) => num(t, 1, 7200)).filter((t) => t !== null).slice(0, 50) : [],
-    accuracy: num(o.accuracy, 0, 100000),
-    observedAt,
-    updatedAt,
-    author: str(o.author, 60),
-    note: str(o.note, 1000),
-    deleted: o.deleted === true,
-  };
-}
-
 // ---------- Sync ----------
 const nextRev = db.prepare(`UPDATE meta SET value = value + 1 WHERE key = 'rev' RETURNING value`);
 const getHunt = db.prepare('SELECT updated_at FROM hunts WHERE id = ?');
@@ -106,21 +54,17 @@ const obsSince = db.prepare('SELECT data FROM observations WHERE rev > ? ORDER B
 const currentRev = db.prepare(`SELECT value FROM meta WHERE key = 'rev'`);
 
 function applyPush(body) {
+  const { hunts, observations, rejected } = cleanPush(body);
   let accepted = 0;
-  let rejected = 0;
   db.exec('BEGIN');
   try {
-    for (const raw of (Array.isArray(body.hunts) ? body.hunts : []).slice(0, 500)) {
-      const h = cleanHunt(raw);
-      if (!h) { rejected++; continue; }
+    for (const h of hunts) {
       const existing = getHunt.get(h.id);
       if (existing && existing.updated_at > h.updatedAt) continue; // version serveur plus récente
       putHunt.run(h.id, nextRev.get().value, h.updatedAt, JSON.stringify(h));
       accepted++;
     }
-    for (const raw of (Array.isArray(body.observations) ? body.observations : []).slice(0, 2000)) {
-      const o = cleanObservation(raw);
-      if (!o) { rejected++; continue; }
+    for (const o of observations) {
       const existing = getObs.get(o.id);
       if (existing && existing.updated_at > o.updatedAt) continue;
       putObs.run(o.id, o.huntId, nextRev.get().value, o.updatedAt, JSON.stringify(o));

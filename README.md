@@ -58,12 +58,23 @@ src/
   sync.ts            synchronisation (envoi des modifs + récupération par révision)
   compass.ts         boussole (iOS webkitCompassHeading / Android deviceorientationabsolute)
   components/        interface Preact (liste, carte, formulaires, chrono, boussole)
-server/index.mjs     serveur Node sans dépendance : API /api/sync + fichiers statiques, SQLite
+server/index.mjs     serveur Node auto-hébergé : API /api/sync + fichiers statiques, SQLite
+server/sync-core.mjs validation des données reçues (commune aux deux serveurs)
+server/pg-store.mjs  stockage Postgres (Vercel + Neon)
+api/sync.js          fonction serverless Vercel
 ```
 
 **Synchronisation** : chaque enregistrement a un identifiant généré sur le téléphone et un `updatedAt`. Le serveur garde la version la plus récente et attribue un numéro de révision croissant. Chaque client envoie ce qu'il a modifié et récupère tout ce qui a changé depuis sa dernière révision. Les suppressions sont « douces » (`deleted: true`).
 
-## Déploiement
+## Déploiement sur Vercel
+
+1. Sur [vercel.com/new](https://vercel.com/new), importer le dépôt GitHub. Vercel détecte la config (`vercel.json`) : rien à régler, cliquer sur **Deploy**.
+2. Dans le projet : onglet **Storage** → **Create Database** → **Neon** (Postgres, offre gratuite) → le lier au projet. Vercel ajoute alors la variable `DATABASE_URL`.
+3. Onglet **Deployments** → **Redeploy** pour que l'API prenne la base en compte. Les tables sont créées automatiquement à la première requête.
+
+L'API (`api/sync.js`) est une fonction serverless qui stocke les données dans Postgres (`server/pg-store.mjs`). Le site est servi en HTTPS : boussole et GPS fonctionnent sur téléphone.
+
+## Auto-hébergement (Docker)
 
 ```bash
 docker build -t traque-frelon .
