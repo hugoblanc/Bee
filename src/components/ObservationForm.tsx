@@ -1,7 +1,8 @@
 import L from 'leaflet';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { HuntMethod, Observation } from '../types';
-import { newId, saveObservation, getAuthor, setAuthor } from '../db';
+import { newId, saveObservation } from '../db';
+import { authorFields } from '../profile';
 import { bearingTo, destination, distance, angleDiff, circularMean, cardinal, formatDistance, type LatLng } from '../geo';
 import { arrowHeadIcon, dotIcon } from '../map';
 import { median, toLocalInput, formatDuration } from '../format';
@@ -44,7 +45,6 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
   const [mapBearing, setMapBearing] = useState<number | null>(editing?.mapBearing ?? null);
   const [compassBearing, setCompassBearing] = useState<number | null>(editing?.compassBearing ?? null);
   const [laps, setLaps] = useState<number[]>(editing?.roundTrips ?? []);
-  const [author, setAuthorState] = useState(editing?.author ?? getAuthor());
   const [note, setNote] = useState(editing?.note ?? '');
   const [observedAt, setObservedAt] = useState(editing?.observedAt ?? Date.now());
   const [aiming, setAiming] = useState(false);
@@ -52,10 +52,14 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
   const [withChrono, setWithChrono] = useState(method === 'chrono' || (editing?.roundTrips.length ?? 0) > 0);
   const [showDetails, setShowDetails] = useState(false);
   const steps: Step[] = withChrono ? ['position', 'direction', 'chrono', 'finish'] : ['position', 'direction', 'finish'];
-  const [step, setStep] = useState<Step>(editing ? 'direction' : 'position');
+  // En modification, on part du récapitulatif : on touche la ligne à changer.
+  const [step, setStep] = useState<Step>(editing ? 'finish' : 'position');
   const stepIndex = steps.indexOf(step);
-  const next = () => setStep(steps[Math.min(steps.length - 1, stepIndex + 1)]);
-  const prev = () => (stepIndex === 0 ? onDone(false) : setStep(steps[stepIndex - 1]));
+  const next = () => setStep(editing ? 'finish' : steps[Math.min(steps.length - 1, stepIndex + 1)]);
+  const prev = () => {
+    if (editing) return step === 'finish' ? onDone(false) : setStep('finish');
+    return stepIndex === 0 ? onDone(false) : setStep(steps[stepIndex - 1]);
+  };
   const [locating, setLocating] = useState(false);
 
   // Longueur de la flèche : environ un tiers de la hauteur visible de la carte.
@@ -152,7 +156,6 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
 
   const save = async () => {
     if (!combined) return;
-    setAuthor(author.trim());
     const now = Date.now();
     const obs: Observation = {
       id: editing?.id ?? newId(),
@@ -167,7 +170,8 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
       roundTrips: laps,
       observedAt,
       updatedAt: now,
-      author: author.trim(),
+      // Une observation modifiée garde son auteur d'origine.
+      ...(editing ? { author: editing.author, authorPhone: editing.authorPhone, authorEmail: editing.authorEmail } : authorFields()),
       note: note.trim(),
       deleted: false,
     };
@@ -176,6 +180,10 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
   };
 
   const canNext = step !== 'direction' || combined !== null;
+  const goEdit = (st: Step) => {
+    if (st === 'chrono') setWithChrono(true);
+    setStep(st);
+  };
 
   return (
     <div class="form wizard">
@@ -189,100 +197,88 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
         />
       )}
 
-      <div class="wizard-head">
-        <span class="muted small">
-          {editing ? 'Modifier' : 'Nouvelle observation'} · étape {stepIndex + 1}/{steps.length}
-        </span>
-        <div class="dots">
-          {steps.map((s2, i) => (
-            <span key={s2} class={i <= stepIndex ? 'on' : ''} />
-          ))}
+      {!editing && (
+        <div class="wizard-head">
+          <div class="dots">
+            {steps.map((s2, i) => (
+              <span key={s2} class={i <= stepIndex ? 'on' : ''} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {step === 'position' && (
         <section>
-          <h2>Où est le pot ?</h2>
-          <p class="hint">Placez-vous à côté du pot et utilisez le GPS, ou touchez la carte à l'endroit du pot.</p>
+          <h2>📍 Où est le pot ?</h2>
           <button type="button" class="btn big wide" onClick={useGps} disabled={locating}>
-            {locating ? 'Localisation…' : '📍 Le pot est ici (GPS)'}
+            {locating ? 'Localisation…' : 'Le pot est ici (GPS)'}
           </button>
-          <p class="muted small center">{accuracy !== null ? `Précision ± ${Math.round(accuracy)} m` : 'Position choisie sur la carte'}</p>
+          <p class="muted small center">
+            {accuracy !== null ? `Précision ± ${Math.round(accuracy)} m` : 'ou touchez la carte'}
+          </p>
         </section>
       )}
 
       {step === 'direction' && (
         <section>
-          <h2>Vers où part le frelon ?</h2>
-          <p class="hint">Touchez la carte dans la direction où il s'envole, puis confirmez avec la boussole.</p>
-          <button type="button" class="btn big wide" onClick={() => setAiming(true)}>🧭 Viser avec la boussole</button>
-          <div class="bearing-grid">
-            <div>
-              <span class="swatch" style={{ background: MAP_COLOR }} /> Carte :{' '}
-              <b>{mapBearing === null ? '—' : `${Math.round(mapBearing)}° ${cardinal(mapBearing)}`}</b>
-            </div>
-            <div>
-              <span class="swatch dashed" style={{ borderColor: COMPASS_COLOR }} /> Boussole :{' '}
-              <b>{compassBearing === null ? '—' : `${Math.round(compassBearing)}° ${cardinal(compassBearing)}`}</b>
-              {compassBearing !== null && (
-                <button type="button" class="link" onClick={() => setCompassBearing(null)}>effacer</button>
-              )}
-            </div>
-          </div>
-          {compassBearing !== null && mapBearing === null && (
-            <button type="button" class="link" onClick={() => setMapBearing(compassBearing)}>Reporter le cap de la boussole sur la carte</button>
-          )}
+          <h2>🧭 Vers où part le frelon ?</h2>
+          <p class="hint">Touchez la carte dans sa direction.</p>
+          <button type="button" class="btn big wide" onClick={() => setAiming(true)}>
+            {compassBearing === null ? 'Viser avec la boussole' : `Boussole : ${Math.round(compassBearing)}° ${cardinal(compassBearing)} · refaire`}
+          </button>
           {combined && combined.gap !== null && (
             <p class={combined.gap <= 20 ? 'ok' : 'warn'}>
-              {combined.gap <= 20
-                ? `✓ Carte et boussole concordent (écart ${Math.round(combined.gap)}°).`
-                : `⚠ Écart de ${Math.round(combined.gap)}° entre carte et boussole : vérifiez. La moyenne sera utilisée.`}
+              {combined.gap <= 20 ? `✓ Carte et boussole d'accord (${Math.round(combined.gap)}°)` : `⚠ Carte et boussole : ${Math.round(combined.gap)}° d'écart`}
             </p>
           )}
-          {method === 'direction' && !withChrono && (
-            <button type="button" class="link" onClick={() => setWithChrono(true)}>＋ J'ai aussi chronométré un frelon marqué</button>
+          {compassBearing !== null && mapBearing === null && (
+            <button type="button" class="link" onClick={() => setMapBearing(compassBearing)}>Reporter la boussole sur la carte</button>
+          )}
+          {method === 'direction' && !withChrono && !editing && (
+            <button type="button" class="link" onClick={() => setWithChrono(true)}>＋ Ajouter un chrono</button>
           )}
         </section>
       )}
 
       {step === 'chrono' && (
         <section>
-          <h2>Chrono aller-retour</h2>
-          <p class="hint">
-            « Départ » quand le frelon marqué quitte le pot, « Retour » quand il revient. Plusieurs tours = meilleure estimation.
-          </p>
+          <h2>⏱ Chrono aller-retour</h2>
           <Stopwatch laps={laps} onChange={setLaps} />
-          {laps.length === 0 && <p class="muted small">Pas de chrono cette fois ? Passez à la suite.</p>}
         </section>
       )}
 
       {step === 'finish' && (
         <section>
-          <h2>Récapitulatif</h2>
-          <ul class="recap">
-            <li>🍯 Pot {accuracy !== null ? `(GPS ± ${Math.round(accuracy)} m)` : '(placé sur la carte)'}</li>
-            {combined && (
-              <li>
-                🧭 Cap <b>{Math.round(combined.bearing)}° {cardinal(combined.bearing)}</b> (± {combined.sigmaDeg}°)
-              </li>
-            )}
-            {roundTrip !== null && (
-              <li>
-                ⏱ Aller-retour médian <b>{formatDuration(roundTrip)}</b> ≈ {formatDistance(distanceFromRoundTrip(roundTrip))}
-              </li>
-            )}
-          </ul>
-          {!showDetails ? (
-            <button type="button" class="link" onClick={() => setShowDetails(true)}>＋ Pseudo, note, date</button>
-          ) : (
+          <h2>{editing ? "Modifier l'observation" : 'Récapitulatif'}</h2>
+          <div class="recap">
+            <button type="button" class="recap-row" onClick={() => goEdit('position')}>
+              <span>📍</span>
+              <span>Pot {accuracy !== null ? `(GPS ± ${Math.round(accuracy)} m)` : '(sur la carte)'}</span>
+              <span class="chev">✎</span>
+            </button>
+            <button type="button" class="recap-row" onClick={() => goEdit('direction')}>
+              <span>🧭</span>
+              <span>{combined ? <><b>{Math.round(combined.bearing)}° {cardinal(combined.bearing)}</b> <small class="muted">± {combined.sigmaDeg}°</small></> : 'Direction à indiquer'}</span>
+              <span class="chev">✎</span>
+            </button>
+            <button type="button" class="recap-row" onClick={() => goEdit('chrono')}>
+              <span>⏱</span>
+              <span>
+                {roundTrip !== null ? <><b>{formatDuration(roundTrip)}</b> <small class="muted">≈ {formatDistance(distanceFromRoundTrip(roundTrip))}</small></> : <span class="muted">Pas de chrono</span>}
+              </span>
+              <span class="chev">✎</span>
+            </button>
+            <button type="button" class="recap-row" onClick={() => setShowDetails(!showDetails)}>
+              <span>📝</span>
+              <span>{note ? note : <span class="muted">Note, date</span>}</span>
+              <span class="chev">{showDetails ? '▴' : '✎'}</span>
+            </button>
+          </div>
+          {showDetails && (
             <>
               <label>
-                Votre pseudo <span class="muted">(optionnel)</span>
-                <input value={author} maxLength={60} onInput={(e) => setAuthorState(e.currentTarget.value)} placeholder="ex. Jean du rucher des Prés" />
-              </label>
-              <label>
-                Note <span class="muted">(optionnel)</span>
-                <textarea value={note} maxLength={1000} rows={2} onInput={(e) => setNote(e.currentTarget.value)} placeholder="Nombre de frelons, couleur de marquage, météo…" />
+                Note
+                <textarea value={note} maxLength={1000} rows={2} onInput={(e) => setNote(e.currentTarget.value)} placeholder="Nombre de frelons, marquage, météo…" />
               </label>
               <label>
                 Date et heure
@@ -297,12 +293,14 @@ export function ObservationForm({ map, huntId, method, userPos, editing, onDone 
       )}
 
       <div class="actions sticky">
-        <button type="button" class="btn ghost" onClick={prev}>{stepIndex === 0 ? 'Annuler' : '← Retour'}</button>
+        <button type="button" class="btn ghost" onClick={prev}>
+          {editing ? (step === 'finish' ? 'Annuler' : '← Retour') : stepIndex === 0 ? 'Annuler' : '← Retour'}
+        </button>
         {step === 'finish' ? (
           <button type="button" class="btn primary" disabled={!combined} onClick={save}>Enregistrer</button>
         ) : (
           <button type="button" class="btn primary" disabled={!canNext} onClick={next}>
-            {step === 'direction' && !combined ? 'Indiquez une direction' : 'Suivant →'}
+            {step === 'direction' && !combined ? 'Indiquez une direction' : editing ? 'OK' : 'Suivant →'}
           </button>
         )}
       </div>

@@ -17,13 +17,14 @@ export function createMap(el: HTMLElement): L.Map {
       attribution: '© OpenStreetMap',
     }),
   };
-  let saved = 'Plan IGN';
+  // Vue aérienne par défaut : plus parlante pour repérer haies, bois et arbres.
+  let saved = 'Photo aérienne';
   try {
     saved = localStorage.getItem('bee.layer') ?? saved;
   } catch {
     /* ignoré */
   }
-  (layers[saved as keyof typeof layers] ?? layers['Plan IGN']).addTo(map);
+  (layers[saved as keyof typeof layers] ?? layers['Photo aérienne']).addTo(map);
   L.control.layers(layers, undefined, { position: 'topright' }).addTo(map);
   L.control.scale({ imperial: false, position: 'topleft' }).addTo(map);
   map.on('baselayerchange', (e: L.LayersControlEvent) => {

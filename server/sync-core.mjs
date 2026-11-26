@@ -22,7 +22,7 @@ export function cleanHunt(h) {
     deleted: h.deleted === true,
     nest:
       nestLat !== null && nestLng !== null
-        ? { lat: nestLat, lng: nestLng, foundAt: time(h.nest.foundAt) ?? updatedAt, note: str(h.nest.note, 500), author: str(h.nest.author, 60) }
+        ? { lat: nestLat, lng: nestLng, foundAt: time(h.nest.foundAt) ?? updatedAt, note: str(h.nest.note, 500), author: str(h.nest.author, 90), authorPhone: str(h.nest.authorPhone, 30), authorEmail: str(h.nest.authorEmail, 120) }
         : null,
   };
 }
@@ -48,7 +48,9 @@ export function cleanObservation(o) {
     accuracy: num(o.accuracy, 0, 100000),
     observedAt,
     updatedAt,
-    author: str(o.author, 60),
+    author: str(o.author, 90),
+    authorPhone: str(o.authorPhone, 30),
+    authorEmail: str(o.authorEmail, 120),
     note: str(o.note, 1000),
     deleted: o.deleted === true,
   };

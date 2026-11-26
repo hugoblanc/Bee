@@ -269,3 +269,56 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
   .page.guide { max-width: 1000px; }
   .guide-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 }
+
+/* ---------- Profil ---------- */
+.profile-btn {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary); color: var(--primary-text); font-weight: 700; text-decoration: none;
+}
+.profile-form { display: flex; flex-direction: column; gap: 0.25rem; }
+.profile-form .btn.wide { margin-top: 0.5rem; }
+.notice { font-size: 0.85rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.8rem; }
+
+/* ---------- Bouton principal sur la carte ---------- */
+.fab-main {
+  position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 500;
+  background: var(--primary); color: var(--primary-text); border: 0; border-radius: 999px;
+  padding: 0.85rem 1.6rem; font: inherit; font-weight: 700; font-size: 1.05rem;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3); cursor: pointer; min-height: 52px;
+}
+.nest-btn { margin: 0.75rem 0 0.25rem; }
+
+/* ---------- Liste des observations ---------- */
+.obs-list li { border-bottom: 0; margin-bottom: 0.5rem; }
+.obs-card {
+  width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.5rem; align-items: center;
+  text-align: left; font: inherit; color: var(--text); cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); border-left: 5px solid; border-radius: 12px;
+  padding: 0.7rem 0.9rem; min-height: 60px;
+}
+.obs-line1 { display: flex; gap: 0.75rem; align-items: center; font-size: 1.05rem; }
+.obs-line1 .time { font-weight: 700; }
+.obs-line1 .bearing { font-weight: 600; }
+.obs-line2 { grid-column: 1; color: var(--muted); font-size: 0.85rem; }
+.obs-card .chev { grid-row: 1 / span 2; grid-column: 2; font-size: 1.6rem; color: var(--muted); }
+
+/* ---------- Fiche d'une observation ---------- */
+.detail { padding: 14px 16px 16px; }
+.detail-head { display: flex; align-items: center; gap: 0.5rem; }
+.detail-head b { flex: 1; }
+.detail-big { font-size: 2rem; font-weight: 800; margin: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
+.mini-arrow.big { font-size: 2rem; }
+.detail-rows { list-style: none; padding: 0; margin: 0 0 0.5rem; display: grid; gap: 0.5rem; }
+.detail-rows li { display: flex; gap: 0.6rem; }
+.detail .actions .btn { flex: 1; }
+.btn.danger { color: var(--danger); }
+
+/* ---------- Récapitulatif cliquable ---------- */
+.recap { display: grid; gap: 0.4rem; }
+.recap-row {
+  display: grid; grid-template-columns: 1.8rem 1fr auto; align-items: center; gap: 0.5rem;
+  width: 100%; text-align: left; font: inherit; color: var(--text); cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.8rem; min-height: 52px;
+}
+.recap-row .chev { color: var(--primary); font-size: 1.1rem; }

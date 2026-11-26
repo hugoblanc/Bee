@@ -3,6 +3,7 @@ import type { Hunt } from '../types';
 import { listHunts, onDataChange, countObservationsByHunt, saveHunt } from '../db';
 import { SyncBadge } from './SyncBadge';
 import { formatDay } from '../format';
+import { displayName, getProfile } from '../profile';
 
 export function HuntList() {
   const [hunts, setHunts] = useState<Hunt[] | null>(null);
@@ -24,6 +25,9 @@ export function HuntList() {
       <header class="topbar home">
         <h1>🐝 Traque au frelon</h1>
         <SyncBadge />
+        <a href="#/profil" class="profile-btn" aria-label="Mon profil" title={displayName() || 'Mon profil'}>
+          {(getProfile().firstName[0] ?? '👤').toUpperCase()}
+        </a>
       </header>
       <p class="intro">
         Localisez les nids de frelons asiatiques à partir de vos pots appâts : notez la direction de départ des frelons, et la zone du nid se resserre jour après jour.

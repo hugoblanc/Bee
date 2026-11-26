@@ -10,7 +10,7 @@ import { ObservationForm, combineBearings } from './ObservationForm';
 import { NestForm } from './NestForm';
 import { SyncBadge } from './SyncBadge';
 
-type Mode = { kind: 'view' } | { kind: 'obs'; editing?: Observation } | { kind: 'nest' };
+type Mode = { kind: 'view' } | { kind: 'detail'; id: string } | { kind: 'obs'; editing?: Observation } | { kind: 'nest' };
 
 const CONFIDENCE_LABEL = { faible: 'Zone encore large', moyenne: 'Zone qui se resserre', bonne: 'Zone précise' };
 
@@ -25,6 +25,10 @@ export function HuntView({ id }: { id: string }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const fitted = useRef(false);
   const refitPending = useRef(false);
+  const openDetail = (o: Observation) => {
+    setMode({ kind: 'detail', id: o.id });
+    setPanelOpen(true);
+  };
 
   // ---------- Données ----------
   useEffect(() => {
@@ -118,14 +122,9 @@ export function HuntView({ id }: { id: string }) {
       L.polyline([o, tip], { color, weight: 3, opacity: 0.85 }).addTo(group);
       L.marker(destination(o, o.bearing, Math.min(len, 60)), { icon: arrowHeadIcon(color, o.bearing), interactive: false }).addTo(group);
       if (d) L.circleMarker(destination(o, o.bearing, d), { radius: 5, color, fillColor: '#fff', fillOpacity: 1, weight: 3 }).addTo(group);
-      L.marker(o, { icon: dotIcon(color, `J${day + 1}`, 26) })
-        .bindPopup(
-          `<b>J${day + 1}</b> · ${formatDay(o.observedAt)} ${formatTime(o.observedAt)}<br>` +
-            `Cap ${Math.round(o.bearing)}° ${cardinal(o.bearing)}` +
-            (o.roundTripSeconds ? `<br>Aller-retour ${formatDuration(o.roundTripSeconds)} (≈ ${formatDistance(d!)})` : '') +
-            (o.author ? `<br>par ${escapeHtml(o.author)}` : '') +
-            (o.note ? `<br><i>${escapeHtml(o.note)}</i>` : ''),
-        )
+      const selected = mode.kind === 'detail' && mode.id === o.id;
+      L.marker(o, { icon: dotIcon(color, `J${day + 1}`, selected ? 38 : 30), zIndexOffset: selected ? 600 : 0 })
+        .on('click', () => openDetail(o))
         .addTo(group);
     }
     return () => void group.remove();
@@ -204,10 +203,15 @@ export function HuntView({ id }: { id: string }) {
             )}
           </div>
         )}
+        {mode.kind === 'view' && (
+          <button type="button" class="fab-main" onClick={() => setMode({ kind: 'obs' })}>
+            ＋ Observation
+          </button>
+        )}
       </div>
 
       <div class={`panel ${panelOpen || mode.kind !== 'view' ? 'open' : ''}`}>
-        {mode.kind === 'view' && (
+        {(mode.kind === 'view') && (
           <button type="button" class="panel-handle" aria-label="Afficher / masquer" onClick={() => setPanelOpen(!panelOpen)}>
             <span />
           </button>
@@ -224,13 +228,32 @@ export function HuntView({ id }: { id: string }) {
           <NestForm map={map} hunt={hunt} userPos={userPos} initial={estimate?.best ?? map.getCenter()} onDone={() => setMode({ kind: 'view' })} />
         )}
 
+        {mode.kind === 'detail' && (() => {
+          const o = observations.find((x) => x.id === mode.id);
+          if (!o) return null;
+          return (
+            <ObservationDetail
+              o={o}
+              day={dayOf(o.observedAt)}
+              onClose={() => setMode({ kind: 'view' })}
+              onEdit={() => setMode({ kind: 'obs', editing: o })}
+              onDelete={async () => {
+                if (confirm('Supprimer cette observation ?')) {
+                  await deleteObservation(o);
+                  setMode({ kind: 'view' });
+                }
+              }}
+              onLocate={() => map?.setView(o, Math.max(map.getZoom(), 17))}
+            />
+          );
+        })()}
+
         {mode.kind === 'view' && (
           <div class="view">
             <Summary hunt={hunt} estimate={estimate} count={observations.length} userLatLng={userLatLng} />
-            <div class="actions">
-              <button type="button" class="btn primary big" onClick={() => setMode({ kind: 'obs' })}>＋ Observation</button>
-              <button type="button" class="btn big" onClick={() => setMode({ kind: 'nest' })}>{hunt?.nest ? '🎯 Modifier le nid' : '🎯 Nid trouvé'}</button>
-            </div>
+            <button type="button" class="btn wide nest-btn" onClick={() => setMode({ kind: 'nest' })}>
+              {hunt?.nest ? '🎯 Modifier le nid' : '🎯 J\'ai trouvé le nid'}
+            </button>
 
             {days.map(([key, list]) => {
               const di = dayOf(list[0].observedAt);
@@ -243,18 +266,20 @@ export function HuntView({ id }: { id: string }) {
                   <ul class="obs-list">
                     {list.map((o) => (
                       <li key={o.id}>
-                        <button type="button" class="obs-main" onClick={() => map?.setView(o, Math.max(map.getZoom(), 17))}>
-                          <span class="time">{formatTime(o.observedAt)}</span>
-                          <span class="bearing">
-                            <span class="mini-arrow" style={{ transform: `rotate(${o.bearing}deg)` }}>↑</span> {Math.round(o.bearing)}° {cardinal(o.bearing)}
+                        <button type="button" class="obs-card" style={{ borderLeftColor: dayColor(di) }} onClick={() => openDetail(o)}>
+                          <span class="obs-line1">
+                            <span class="time">{formatTime(o.observedAt)}</span>
+                            <span class="bearing">
+                              <span class="mini-arrow" style={{ transform: `rotate(${o.bearing}deg)` }}>↑</span> {cardinal(o.bearing)} {Math.round(o.bearing)}°
+                            </span>
+                            {o.dirty ? <span class="tag pending" title="Pas encore envoyée">⏳</span> : null}
                           </span>
-                          {o.roundTripSeconds ? <span class="rt">⏱ {formatDuration(o.roundTripSeconds)} ≈ {formatDistance(distanceFromRoundTrip(o.roundTripSeconds))}</span> : null}
-                          {o.compassBearing !== null && o.mapBearing !== null && <span class="tag" title="Carte et boussole">✓✓</span>}
-                          {o.author && <span class="author">{o.author}</span>}
-                          {o.dirty ? <span class="tag pending" title="Pas encore envoyée">⏳</span> : null}
+                          <span class="obs-line2">
+                            {o.roundTripSeconds ? `⏱ ${formatDuration(o.roundTripSeconds)} · ` : ''}
+                            {o.author || 'Anonyme'}
+                          </span>
+                          <span class="chev">›</span>
                         </button>
-                        <button type="button" class="icon" aria-label="Modifier" onClick={() => setMode({ kind: 'obs', editing: o })}>✎</button>
-                        <button type="button" class="icon" aria-label="Supprimer" onClick={() => confirm('Supprimer cette observation ?') && deleteObservation(o)}>🗑</button>
                       </li>
                     ))}
                   </ul>
@@ -321,4 +346,54 @@ function groupByDay(obs: Observation[]): [string, Observation[]][] {
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+}
+
+function ObservationDetail({ o, day, onClose, onEdit, onDelete, onLocate }: {
+  o: Observation;
+  day: number;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onLocate: () => void;
+}) {
+  useEffect(onLocate, [o.id]);
+  const sources = [o.mapBearing !== null && 'carte', o.compassBearing !== null && 'boussole'].filter(Boolean).join(' + ');
+  return (
+    <div class="detail">
+      <div class="detail-head">
+        <span class="day-badge" style={{ background: dayColor(day) }}>J{day + 1}</span>
+        <b>{formatDay(o.observedAt)} · {formatTime(o.observedAt)}</b>
+        <button type="button" class="icon close" aria-label="Fermer" onClick={onClose}>✕</button>
+      </div>
+      <div class="detail-big">
+        <span class="mini-arrow big" style={{ transform: `rotate(${o.bearing}deg)` }}>↑</span>
+        {cardinal(o.bearing)} <span class="muted">{Math.round(o.bearing)}°</span>
+      </div>
+      <ul class="detail-rows">
+        <li><span>🧭</span><span>Direction ({sources || '—'})</span></li>
+        {o.roundTripSeconds ? (
+          <li>
+            <span>⏱</span>
+            <span>
+              Aller-retour <b>{formatDuration(o.roundTripSeconds)}</b> ≈ {formatDistance(distanceFromRoundTrip(o.roundTripSeconds))}
+              {o.roundTrips.length > 1 && <span class="muted small"> · {o.roundTrips.length} tours</span>}
+            </span>
+          </li>
+        ) : null}
+        <li>
+          <span>👤</span>
+          <span>
+            {o.author || 'Anonyme'}
+            {o.authorPhone && <> · <a href={`tel:${o.authorPhone}`}>{o.authorPhone}</a></>}
+            {o.authorEmail && <> · <a href={`mailto:${o.authorEmail}`}>{o.authorEmail}</a></>}
+          </span>
+        </li>
+        {o.note && <li><span>📝</span><span>{o.note}</span></li>}
+      </ul>
+      <div class="actions">
+        <button type="button" class="btn primary big" onClick={onEdit}>✎ Modifier</button>
+        <button type="button" class="btn big danger" onClick={onDelete}>Supprimer</button>
+      </div>
+    </div>
+  );
 }

@@ -99,20 +99,3 @@ export async function createHunt(name: string, method: HuntMethod): Promise<Hunt
   await saveHunt(h);
   return h;
 }
-
-// ---------- Préférences ----------
-const AUTHOR_KEY = 'bee.author';
-export function getAuthor(): string {
-  try {
-    return localStorage.getItem(AUTHOR_KEY) ?? '';
-  } catch {
-    return '';
-  }
-}
-export function setAuthor(name: string) {
-  try {
-    localStorage.setItem(AUTHOR_KEY, name);
-  } catch {
-    /* ignoré */
-  }
-}

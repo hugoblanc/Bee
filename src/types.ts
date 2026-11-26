@@ -4,6 +4,8 @@ export interface Nest {
   foundAt: number;
   note: string;
   author: string;
+  authorPhone?: string;
+  authorEmail?: string;
 }
 
 /**
@@ -44,7 +46,10 @@ export interface Observation {
   roundTrips: number[];
   observedAt: number;
   updatedAt: number;
+  /** Prénom et nom de l'auteur (profil du téléphone). */
   author: string;
+  authorPhone?: string;
+  authorEmail?: string;
   note: string;
   deleted: boolean;
   dirty?: 0 | 1;

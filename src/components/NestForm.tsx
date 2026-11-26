@@ -1,7 +1,8 @@
 import L from 'leaflet';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Hunt } from '../types';
-import { saveHunt, getAuthor, setAuthor } from '../db';
+import { saveHunt } from '../db';
+import { authorFields } from '../profile';
 import { nestIcon } from '../map';
 import type { LatLng } from '../geo';
 
@@ -16,7 +17,6 @@ interface Props {
 export function NestForm({ map, hunt, initial, userPos, onDone }: Props) {
   const [pos, setPos] = useState<LatLng>(hunt.nest ?? initial);
   const [note, setNote] = useState(hunt.nest?.note ?? '');
-  const [author, setAuthorState] = useState(hunt.nest?.author ?? getAuthor());
   const marker = useRef<L.Marker | null>(null);
 
   useEffect(() => {
@@ -38,15 +38,14 @@ export function NestForm({ map, hunt, initial, userPos, onDone }: Props) {
   }, [pos]);
 
   const save = async () => {
-    setAuthor(author.trim());
-    await saveHunt({ ...hunt, nest: { lat: pos.lat, lng: pos.lng, foundAt: hunt.nest?.foundAt ?? Date.now(), note: note.trim(), author: author.trim() } });
+    await saveHunt({ ...hunt, nest: { lat: pos.lat, lng: pos.lng, foundAt: hunt.nest?.foundAt ?? Date.now(), note: note.trim(), ...authorFields() } });
     onDone();
   };
 
   return (
     <div class="form">
       <h2>🎯 Nid trouvé</h2>
-      <p class="hint">Placez la cible sur l'emplacement exact du nid (glisser ou toucher la carte). La photo aérienne aide à repérer l'arbre.</p>
+      <p class="hint">Touchez la carte à l'emplacement exact du nid.</p>
       {userPos && (
         <button type="button" class="btn" onClick={() => {
           const p = { lat: userPos.coords.latitude, lng: userPos.coords.longitude };
@@ -56,10 +55,6 @@ export function NestForm({ map, hunt, initial, userPos, onDone }: Props) {
           📍 Je suis sous le nid
         </button>
       )}
-      <label>
-        Votre pseudo <span class="muted">(optionnel)</span>
-        <input value={author} maxLength={60} onInput={(e) => setAuthorState(e.currentTarget.value)} />
-      </label>
       <label>
         Note <span class="muted">(optionnel)</span>
         <textarea rows={2} maxLength={500} value={note} onInput={(e) => setNote(e.currentTarget.value)} placeholder="Hauteur, type d'arbre, signalé à la mairie…" />
