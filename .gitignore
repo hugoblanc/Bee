@@ -3,3 +3,8 @@ dist
 dev-dist
 data
 *.log
+scripts/video/frames
+scripts/video/composed
+scripts/video/shots.json
+scripts/video/concat.txt
+scripts/video/*.mp4
