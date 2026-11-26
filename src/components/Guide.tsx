@@ -61,10 +61,10 @@ export function Guide() {
           <li>Si la boussole semble fausse : faites quelques <b>« 8 » dans l'air</b> avec le téléphone pour la calibrer, et éloignez-vous des voitures, clôtures et objets métalliques.</li>
         </ul>
 
-        <h2>À plusieurs</h2>
+        <h2>Vos données</h2>
         <p>
-          Les recherches sont <b>partagées</b> : tout le monde voit et complète les mêmes observations, sans compte. Sans réseau, tout est
-          enregistré sur le téléphone et envoyé dès que la connexion revient.
+          Tout est enregistré <b>sur ce téléphone</b>, sans compte et sans connexion nécessaire : l'appli fonctionne aussi en pleine
+          campagne sans réseau (pensez à afficher la carte de la zone une fois avant de partir, pour qu'elle reste disponible).
         </p>
 
         <h2>⚠️ Sécurité</h2>

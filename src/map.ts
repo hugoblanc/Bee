@@ -6,7 +6,8 @@ export function createMap(el: HTMLElement): L.Map {
   const ign = (layer: string, format: string, maxZoom: number) =>
     L.tileLayer(
       `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=${format}`,
-      { maxZoom: 20, maxNativeZoom: maxZoom, attribution: '© IGN' },
+      // crossOrigin : réponses CORS, mises en cache à leur vraie taille (hors ligne).
+      { maxZoom: 20, maxNativeZoom: maxZoom, attribution: '© IGN', crossOrigin: true },
     );
   const layers = {
     'Plan IGN': ign('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2', 'image/png', 19),
@@ -15,6 +16,7 @@ export function createMap(el: HTMLElement): L.Map {
       maxZoom: 20,
       maxNativeZoom: 19,
       attribution: '© OpenStreetMap',
+      crossOrigin: true,
     }),
   };
   // Vue aérienne par défaut : plus parlante pour repérer haies, bois et arbres.
@@ -34,6 +36,8 @@ export function createMap(el: HTMLElement): L.Map {
       /* ignoré */
     }
   });
+  // Mode démonstration (?demo) : la carte est accessible pour piloter la vidéo de présentation.
+  if (new URLSearchParams(location.search).has('demo')) (window as unknown as { __beeMap: L.Map }).__beeMap = map;
   return map;
 }
 

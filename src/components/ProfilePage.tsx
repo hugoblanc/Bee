@@ -40,8 +40,7 @@ export function ProfilePage({ welcome, onDone }: { welcome: boolean; onDone: () 
           <input type="email" value={p.email} onInput={set('email')} autocomplete="email" maxLength={120} />
         </label>
         <p class="notice">
-          ⚠️ Sans compte, les données sont ouvertes : ces informations sont <b>visibles par tous</b> les utilisateurs de l'appli, sur
-          chacune de vos observations. Elles restent enregistrées sur ce téléphone.
+          🔒 Ces informations restent <b>sur ce téléphone</b> : rien n'est envoyé sur internet.
         </p>
         <button class="btn primary big wide" type="submit">{welcome ? 'Continuer' : 'Enregistrer'}</button>
         {welcome && (

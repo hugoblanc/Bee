@@ -9,6 +9,7 @@ import { dayIndexer, dayKey, formatDay, formatTime, formatDuration } from '../fo
 import { ObservationForm, combineBearings } from './ObservationForm';
 import { NestForm } from './NestForm';
 import { SyncBadge } from './SyncBadge';
+import { SYNC_ENABLED } from '../config';
 
 type Mode = { kind: 'view' } | { kind: 'detail'; id: string } | { kind: 'obs'; editing?: Observation } | { kind: 'nest' };
 
@@ -272,7 +273,7 @@ export function HuntView({ id }: { id: string }) {
                             <span class="bearing">
                               <span class="mini-arrow" style={{ transform: `rotate(${o.bearing}deg)` }}>↑</span> {cardinal(o.bearing)} {Math.round(o.bearing)}°
                             </span>
-                            {o.dirty ? <span class="tag pending" title="Pas encore envoyée">⏳</span> : null}
+                            {SYNC_ENABLED && o.dirty ? <span class="tag pending" title="Pas encore envoyée">⏳</span> : null}
                           </span>
                           <span class="obs-line2">
                             {o.roundTripSeconds ? `⏱ ${formatDuration(o.roundTripSeconds)} · ` : ''}

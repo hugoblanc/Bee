@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import { onSyncState, syncNow, type SyncState } from '../sync';
+import { SYNC_ENABLED } from '../config';
 
 export function SyncBadge() {
+  if (!SYNC_ENABLED) return null;
+  return <SyncBadgeInner />;
+}
+
+function SyncBadgeInner() {
   const [s, setS] = useState<SyncState | null>(null);
   useEffect(() => onSyncState(setS), []);
   if (!s) return null;

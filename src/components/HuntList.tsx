@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { Hunt } from '../types';
 import { listHunts, onDataChange, countObservationsByHunt, saveHunt } from '../db';
 import { SyncBadge } from './SyncBadge';
+import { SYNC_ENABLED } from '../config';
 import { formatDay } from '../format';
 import { displayName, getProfile } from '../profile';
 
@@ -45,7 +46,7 @@ export function HuntList() {
       {hunts === null ? (
         <p class="muted">Chargement…</p>
       ) : hunts.length === 0 ? (
-        <p class="muted">Aucune recherche pour l'instant. Les recherches sont partagées : celles des autres apparaîtront ici après synchronisation.</p>
+        <p class="muted">Aucune recherche pour l'instant.</p>
       ) : (
         <>
           <HuntSection title="En cours" hunts={active} counts={counts} />
@@ -68,11 +69,11 @@ function HuntSection({ title, hunts, counts }: { title: string; hunts: Hunt[]; c
               <span class="name">{h.nest ? '🎯 ' : h.method === 'chrono' ? '⏱ ' : '🧭 '}{h.name}</span>
               <span class="muted small">
                 {counts.get(h.id) ?? 0} observation{(counts.get(h.id) ?? 0) > 1 ? 's' : ''} · mis à jour {formatDay(h.updatedAt)}
-                {h.dirty ? ' · ⏳' : ''}
+                {SYNC_ENABLED && h.dirty ? ' · ⏳' : ''}
               </span>
             </a>
             <button type="button" class="icon" aria-label="Archiver" title="Supprimer" onClick={() => {
-              if (confirm(`Supprimer « ${h.name} » pour tout le monde ?`)) void saveHunt({ ...h, deleted: true });
+              if (confirm(`Supprimer « ${h.name} » ?`)) void saveHunt({ ...h, deleted: true });
             }}>🗑</button>
           </li>
         ))}
