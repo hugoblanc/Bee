@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Hunt } from '../types';
-import { listHunts, createHunt, onDataChange, countObservationsByHunt, saveHunt } from '../db';
+import { listHunts, onDataChange, countObservationsByHunt, saveHunt } from '../db';
 import { SyncBadge } from './SyncBadge';
 import { formatDay } from '../format';
 
 export function HuntList() {
   const [hunts, setHunts] = useState<Hunt[] | null>(null);
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
-  const [name, setName] = useState('');
-
   useEffect(() => {
     const load = async () => {
       setHunts(await listHunts());
@@ -17,13 +15,6 @@ export function HuntList() {
     void load();
     return onDataChange(() => void load());
   }, []);
-
-  const create = async (e: Event) => {
-    e.preventDefault();
-    const h = await createHunt(name || `Recherche du ${new Date().toLocaleDateString('fr-FR')}`);
-    setName('');
-    location.hash = `#/h/${h.id}`;
-  };
 
   const active = hunts?.filter((h) => !h.nest) ?? [];
   const found = hunts?.filter((h) => h.nest) ?? [];
@@ -35,13 +26,17 @@ export function HuntList() {
         <SyncBadge />
       </header>
       <p class="intro">
-        Localisez les nids de frelons asiatiques par triangulation : notez la direction de départ des frelons depuis vos pots sucrés, jour après jour, et la zone du nid se resserre.
+        Localisez les nids de frelons asiatiques à partir de vos pots appâts : notez la direction de départ des frelons, et la zone du nid se resserre jour après jour.
       </p>
 
-      <form class="new-hunt" onSubmit={create}>
-        <input value={name} onInput={(e) => setName(e.currentTarget.value)} placeholder="Nom (ex. Rucher du moulin)" maxLength={120} />
-        <button class="btn primary" type="submit">＋ Nouvelle recherche</button>
-      </form>
+      <a class="btn primary big wide" href="#/nouveau">＋ Nouvelle recherche</a>
+      <a class="guide-card" href="#/guide">
+        <span>📖</span>
+        <span>
+          <b>Comment ça marche ?</b>
+          <span class="muted small">Les deux méthodes expliquées pas à pas</span>
+        </span>
+      </a>
 
       {hunts === null ? (
         <p class="muted">Chargement…</p>
@@ -66,7 +61,7 @@ function HuntSection({ title, hunts, counts }: { title: string; hunts: Hunt[]; c
         {hunts.map((h) => (
           <li key={h.id}>
             <a href={`#/h/${h.id}`}>
-              <span class="name">{h.nest ? '🎯 ' : ''}{h.name}</span>
+              <span class="name">{h.nest ? '🎯 ' : h.method === 'chrono' ? '⏱ ' : '🧭 '}{h.name}</span>
               <span class="muted small">
                 {counts.get(h.id) ?? 0} observation{(counts.get(h.id) ?? 0) > 1 ? 's' : ''} · mis à jour {formatDay(h.updatedAt)}
                 {h.dirty ? ' · ⏳' : ''}

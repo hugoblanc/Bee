@@ -110,6 +110,7 @@ label input, label textarea { margin-top: 0.25rem; font-weight: 400; }
 /* ---------- Accueil ---------- */
 .page { max-width: 640px; margin: 0 auto; padding-bottom: 2rem; }
 .page > *:not(.topbar) { margin-left: 16px; margin-right: 16px; }
+.page > input, .page > .btn.wide { width: calc(100% - 32px); }
 .intro { color: var(--muted); margin-top: 1rem; }
 .new-hunt { display: flex; gap: 0.5rem; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
 .new-hunt input { flex: 1 1 200px; }
@@ -132,7 +133,7 @@ label input, label textarea { margin-top: 0.25rem; font-weight: 400; }
   border-radius: 16px 16px 0 0;
   margin-top: -12px;
   position: relative;
-  z-index: 600;
+  z-index: 1100; /* au-dessus des contrôles Leaflet (z-index 1000), pour l'écran boussole */
   max-height: 3.2rem;
   overflow: hidden;
   transition: max-height 0.2s ease;
@@ -186,13 +187,19 @@ label input, label textarea { margin-top: 0.25rem; font-weight: 400; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 0.8rem; padding: 24px 16px; text-align: center;
 }
-.compass-rose { width: 220px; height: 220px; border-radius: 50%; border: 3px solid var(--border); position: relative; transition: transform 0.15s linear; }
-.compass-rose span { position: absolute; font-weight: 700; }
-.compass-rose .n { top: 6px; left: 50%; transform: translateX(-50%); color: #dc2626; font-size: 1.3rem; }
-.compass-rose .s { bottom: 6px; left: 50%; transform: translateX(-50%); }
-.compass-rose .e { right: 10px; top: 50%; transform: translateY(-50%); }
-.compass-rose .w { left: 10px; top: 50%; transform: translateY(-50%); }
-.compass-pointer { color: var(--primary); font-size: 1.6rem; margin-top: -0.8rem; }
+.aim-mode { font-size: 1rem; max-width: 420px; margin: 0; }
+.aim-arrow { color: var(--primary); font-size: 1.8rem; line-height: 1; margin-bottom: -0.4rem; }
+.tape { position: relative; width: 100%; max-width: 420px; height: 64px; overflow: hidden; border: 2px solid var(--border); border-radius: 12px; background: var(--bg); }
+.tape-inner { position: absolute; left: 50%; top: 0; bottom: 0; }
+.tick { position: absolute; top: 0; width: 0; height: 100%; }
+.tick::before { content: ''; position: absolute; top: 0; left: -1px; width: 2px; height: 10px; background: var(--muted); }
+.tick.mid::before { height: 16px; }
+.tick.major::before { height: 22px; background: var(--text); }
+.tick span, .tick small { position: absolute; top: 28px; transform: translateX(-50%); white-space: nowrap; }
+.tick span { font-weight: 800; font-size: 1.15rem; }
+.tick span.north { color: #dc2626; }
+.tick small { color: var(--muted); font-size: 0.75rem; }
+.tape-marker { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: var(--primary); }
 .compass-value { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .compass-value small { font-size: 1.2rem; color: var(--muted); }
 .compass-overlay .row { width: 100%; max-width: 420px; }
@@ -207,3 +214,58 @@ label input, label textarea { margin-top: 0.25rem; font-weight: 400; }
 .bee-nest span { font-size: 30px; display: block; text-align: center; filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
 .leaflet-image-layer.heat { image-rendering: auto; }
 .leaflet-container { font: inherit; }
+
+/* ---------- Boutons-liens, utilitaires ---------- */
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.btn.wide { display: flex; justify-content: center; width: 100%; }
+.center { text-align: center; }
+
+/* ---------- Accueil ---------- */
+.page > a.btn.wide { margin-top: 0.5rem; }
+.guide-card {
+  display: flex; gap: 0.8rem; align-items: center;
+  margin-top: 0.75rem; margin-bottom: 1.5rem; padding: 0.8rem 1rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); text-decoration: none;
+}
+.guide-card > span:first-child { font-size: 1.6rem; }
+.guide-card > span:last-child { display: flex; flex-direction: column; }
+
+/* ---------- Nouvelle recherche ---------- */
+.step-title { margin-top: 1.25rem; }
+.method-cards { display: grid; gap: 0.75rem; }
+.method-card {
+  display: flex; flex-direction: column; gap: 0.3rem; text-align: left;
+  padding: 1rem; border-radius: 14px; border: 2px solid var(--border);
+  background: var(--surface); color: var(--text); font: inherit; cursor: pointer;
+}
+.method-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+.method-icon { font-size: 1.8rem; }
+.method-name { font-weight: 700; font-size: 1.1rem; }
+.method-desc { color: var(--text); }
+.method-meta { color: var(--muted); font-size: 0.85rem; }
+.btn.start { margin-top: 1rem; }
+.method-chip { font-size: 0.75rem; border-radius: 999px; padding: 0.15rem 0.5rem; background: var(--bg); border: 1px solid var(--border); white-space: nowrap; }
+
+/* ---------- Assistant de saisie ---------- */
+.wizard section { border-top: 0; padding-top: 0.25rem; }
+.wizard h2 { font-size: 1.25rem; }
+.wizard .btn.big.wide { margin: 0.5rem 0; }
+.wizard-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.dots { display: flex; gap: 6px; }
+.dots span { width: 22px; height: 5px; border-radius: 3px; background: var(--border); }
+.dots span.on { background: var(--primary); }
+.recap { list-style: none; padding: 0; margin: 0.25rem 0 0.75rem; display: grid; gap: 0.35rem; }
+
+/* ---------- Guide ---------- */
+.guide article { padding-bottom: 2rem; }
+.guide .lead { font-size: 1.1rem; margin-top: 1rem; }
+.guide h2 { margin-top: 1.5rem; }
+.guide ol, .guide ul { padding-left: 1.3rem; }
+.guide li { margin: 0.35rem 0; }
+.guide-methods section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0.25rem 1rem 0.75rem; margin-top: 1rem; }
+.tip { background: var(--bg); border-left: 3px solid var(--primary); padding: 0.5rem 0.75rem; font-size: 0.9rem; border-radius: 0 8px 8px 0; }
+@media (min-width: 900px) {
+  .page.guide { max-width: 1000px; }
+  .guide-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+}

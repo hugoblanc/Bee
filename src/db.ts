@@ -1,7 +1,7 @@
 // Stockage local (IndexedDB) : tout est d'abord enregistré sur le téléphone,
 // puis envoyé au serveur dès que le réseau est disponible.
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Hunt, Observation } from './types';
+import type { Hunt, HuntMethod, Observation } from './types';
 
 type Schema = {
   hunts: { key: string; value: Hunt; indexes: { dirty: number } };
@@ -47,14 +47,17 @@ export function setAfterLocalWrite(fn: () => void) {
 }
 
 // ---------- Lecture ----------
+// Les recherches créées avant l'ajout du choix de méthode n'ont pas de champ `method`.
+const withMethod = (h: Hunt): Hunt => ({ ...h, method: h.method === 'chrono' ? 'chrono' : 'direction' });
+
 export async function listHunts(): Promise<Hunt[]> {
   const all = await (await getDb()).getAll('hunts');
-  return all.filter((h) => !h.deleted).sort((a, b) => b.updatedAt - a.updatedAt);
+  return all.filter((h) => !h.deleted).map(withMethod).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function getHunt(id: string): Promise<Hunt | undefined> {
   const h = await (await getDb()).get('hunts', id);
-  return h && !h.deleted ? h : undefined;
+  return h && !h.deleted ? withMethod(h) : undefined;
 }
 
 export async function listObservations(huntId: string): Promise<Observation[]> {
@@ -90,9 +93,9 @@ export async function deleteObservation(o: Observation) {
   await saveObservation({ ...o, deleted: true });
 }
 
-export async function createHunt(name: string): Promise<Hunt> {
+export async function createHunt(name: string, method: HuntMethod): Promise<Hunt> {
   const now = Date.now();
-  const h: Hunt = { id: newId(), name: name.trim() || 'Nouvelle recherche', createdAt: now, updatedAt: now, deleted: false, nest: null };
+  const h: Hunt = { id: newId(), name: name.trim() || 'Nouvelle recherche', method, createdAt: now, updatedAt: now, deleted: false, nest: null };
   await saveHunt(h);
   return h;
 }

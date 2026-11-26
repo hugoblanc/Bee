@@ -188,6 +188,7 @@ export function HuntView({ id }: { id: string }) {
           const name = prompt('Nom de la recherche', hunt.name);
           if (name && name.trim()) await saveHunt({ ...hunt, name: name.trim() });
         }}>{hunt?.name ?? '…'}</h1>
+        {hunt && <span class="method-chip" title="Méthode de recherche">{hunt.method === 'chrono' ? '⏱ Chrono' : '🧭 Directions'}</span>}
         <SyncBadge />
       </header>
 
@@ -213,7 +214,7 @@ export function HuntView({ id }: { id: string }) {
         )}
 
         {map && mode.kind === 'obs' && (
-          <ObservationForm map={map} huntId={id} userPos={userPos} editing={mode.editing} onDone={(saved) => {
+          <ObservationForm map={map} huntId={id} method={hunt?.method ?? 'direction'} userPos={userPos} editing={mode.editing} onDone={(saved) => {
             // Après un enregistrement, on recadre pour voir la nouvelle zone estimée.
             if (saved) refitPending.current = true;
             setMode({ kind: 'view' });
@@ -281,8 +282,13 @@ function Summary({ hunt, estimate, count, userLatLng }: { hunt: Hunt | undefined
   if (!estimate) {
     return (
       <div class="summary">
-        <b>Commencez par une observation.</b>
-        <p class="hint">Posez un pot sucré, attendez un frelon, et notez la direction dans laquelle il repart vers son nid. Plusieurs pots à quelques centaines de mètres d'écart permettent de croiser les directions.</p>
+        <b>Première observation</b>
+        {hunt?.method === 'chrono' ? (
+          <p class="hint">Marquez un frelon sur le pot, notez sa direction de départ et chronométrez ses allers-retours. Une seule observation donne déjà une zone.</p>
+        ) : (
+          <p class="hint">Attendez un frelon sur le pot et notez la direction dans laquelle il repart. Recommencez depuis un 2ᵉ pot à 200–300 m sur le côté pour croiser les directions.</p>
+        )}
+        <a href="#/guide" class="small">📖 Revoir le guide</a>
       </div>
     );
   }

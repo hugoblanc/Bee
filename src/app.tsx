@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'preact/hooks';
 import { HuntList } from './components/HuntList';
 import { HuntView } from './components/HuntView';
+import { NewHunt } from './components/NewHunt';
+import { Guide } from './components/Guide';
 
 function useHash() {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
-    const on = () => setHash(location.hash);
+    const on = () => {
+      setHash(location.hash);
+      window.scrollTo(0, 0);
+    };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
@@ -15,5 +20,8 @@ function useHash() {
 export function App() {
   const hash = useHash();
   const m = /^#\/h\/([A-Za-z0-9_-]+)/.exec(hash);
-  return m ? <HuntView key={m[1]} id={m[1]} /> : <HuntList />;
+  if (m) return <HuntView key={m[1]} id={m[1]} />;
+  if (hash.startsWith('#/nouveau')) return <NewHunt />;
+  if (hash.startsWith('#/guide')) return <Guide />;
+  return <HuntList />;
 }

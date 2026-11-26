@@ -16,6 +16,7 @@ export function cleanHunt(h) {
   return {
     id: h.id,
     name: str(h.name, 120) || 'Recherche sans nom',
+    method: h.method === 'chrono' ? 'chrono' : 'direction',
     createdAt,
     updatedAt,
     deleted: h.deleted === true,

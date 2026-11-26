@@ -6,9 +6,17 @@ export interface Nest {
   author: string;
 }
 
+/**
+ * Méthode de recherche :
+ * - direction : triangulation simple (directions de départ depuis plusieurs pots) ;
+ * - chrono : triangulation + chronométrage des allers-retours d'un frelon marqué.
+ */
+export type HuntMethod = 'direction' | 'chrono';
+
 export interface Hunt {
   id: string;
   name: string;
+  method: HuntMethod;
   createdAt: number;
   updatedAt: number;
   deleted: boolean;
