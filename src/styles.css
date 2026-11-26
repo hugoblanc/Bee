@@ -322,3 +322,28 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
   background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 0.8rem; min-height: 52px;
 }
 .recap-row .chev { color: var(--primary); font-size: 1.1rem; }
+
+/* ---------- Animation de calibration (téléphone qui décrit un 8) ---------- */
+.calib-anim { position: relative; width: 260px; height: 160px; margin: 0.5rem auto; }
+.calib-path { position: absolute; inset: 10px; width: 240px; height: 140px; }
+.calib-path path { fill: none; stroke: var(--primary); stroke-width: 3; stroke-dasharray: 6 8; opacity: 0.6; }
+.calib-phone {
+  position: absolute; left: 10px; top: 10px; width: 0; height: 0;
+  offset-path: path("M120,70 C160,10 230,10 230,70 C230,130 160,130 120,70 C80,10 10,10 10,70 C10,130 80,130 120,70 Z");
+  offset-rotate: 0deg;
+  animation: calib-move 3.2s linear infinite;
+}
+.calib-phone-body {
+  width: 30px; height: 54px; margin: -27px 0 0 -15px; border-radius: 7px;
+  background: var(--text); border: 3px solid var(--text); position: relative;
+  animation: calib-twist 1.6s ease-in-out infinite alternate;
+  box-shadow: 0 4px 10px rgba(0,0,0,.3);
+}
+.calib-phone-body span { position: absolute; inset: 3px 2px 6px; border-radius: 3px; background: var(--primary); }
+@keyframes calib-move { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+@keyframes calib-twist {
+  from { transform: perspective(200px) rotateY(-55deg) rotateX(20deg) rotateZ(-15deg); }
+  to { transform: perspective(200px) rotateY(55deg) rotateX(-20deg) rotateZ(15deg); }
+}
+.calib-text { max-width: 420px; font-size: 1.05rem; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .calib-phone, .calib-phone-body { animation-duration: 8s; } }

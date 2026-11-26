@@ -138,6 +138,11 @@ const T = dest(NEST, 160, 380); // pot chrono
   const brgA = bearing(A, NEST) + 4;
   await tapSel('text=Viser avec la boussole', 'Étape 2 — la direction', 'Méthode 1 : la boussole du téléphone.', 3);
   await settle(500);
+  if (await page.isVisible('.calib-anim')) {
+    await shot('Première fois : le calibrage', 'Un « 8 » dans l\'air en tournant le poignet\npermet au téléphone de calibrer sa boussole.', 4);
+    await page.click('text=Compris');
+    await settle(300);
+  }
   await compassFrames(brgA, 50, 'Viser avec la boussole', 'Téléphone tenu debout : on vise avec l\'arrière,\ndans la direction où le frelon est parti.');
   await tapSel('text=Valider ce cap', 'Viser avec la boussole', 'On valide le cap quand il est stable.', 2.5);
   await frame([A, dest(A, brgA, 300)]);

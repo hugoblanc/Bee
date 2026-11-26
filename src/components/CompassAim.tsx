@@ -32,13 +32,39 @@ function HeadingTape({ heading }: { heading: number }) {
   );
 }
 
+const INTRO_KEY = 'bee.compassIntroSeen';
+function introSeen(): boolean {
+  try {
+    return localStorage.getItem(INTRO_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+/** Animation : un téléphone décrit un « 8 » en tournant sur lui-même. */
+export function CalibrationAnimation() {
+  return (
+    <div class="calib-anim" aria-hidden="true">
+      <svg viewBox="0 0 240 140" class="calib-path">
+        <path d="M120,70 C160,10 230,10 230,70 C230,130 160,130 120,70 C80,10 10,10 10,70 C10,130 80,130 120,70 Z" />
+      </svg>
+      <div class="calib-phone">
+        <div class="calib-phone-body">
+          <span />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Écran de visée : on pointe le téléphone vers la direction prise par le frelon. */
 export function CompassAim({ onValidate, onClose }: Props) {
+  const [intro, setIntro] = useState(!introSeen());
   const [reading, setReading] = useState<CompassReading | null>(null);
   const [error, setError] = useState<string | null>(compassSupported() ? null : 'Boussole non disponible sur cet appareil.');
 
   useEffect(() => {
-    if (!compassSupported()) return;
+    if (intro || !compassSupported()) return;
     let stop: (() => void) | null = null;
     let cancelled = false;
     startCompass((r) => {
@@ -51,7 +77,38 @@ export function CompassAim({ onValidate, onClose }: Props) {
       cancelled = true;
       stop?.();
     };
-  }, []);
+  }, [intro]);
+
+  if (intro) {
+    return (
+      <div class="compass-overlay" role="dialog" aria-label="Calibrer la boussole">
+        <h2>🧭 Bon à savoir</h2>
+        <CalibrationAnimation />
+        <p class="calib-text">
+          La boussole d'un téléphone se <b>calibre</b> quand on le bouge. Si le cap semble faux, décrivez quelques <b>« 8 » dans l'air</b> en
+          tournant le poignet, comme ci-dessus.
+        </p>
+        <p class="hint">Loin des voitures, clôtures et objets métalliques.</p>
+        <div class="row">
+          <button type="button" class="btn ghost" onClick={onClose}>Annuler</button>
+          <button
+            type="button"
+            class="btn primary big"
+            onClick={() => {
+              try {
+                localStorage.setItem(INTRO_KEY, '1');
+              } catch {
+                /* ignoré */
+              }
+              setIntro(false);
+            }}
+          >
+            Compris
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const unstable = reading && reading.jitter >= 6;
   const needsCalibration = reading && ((reading.accuracy !== null && reading.accuracy > 20) || reading.jitter > 15);
@@ -78,7 +135,7 @@ export function CompassAim({ onValidate, onClose }: Props) {
           {needsCalibration && (
             <p class="warn">Boussole imprécise : décrivez quelques « 8 » dans l'air avec le téléphone, loin des objets métalliques et des voitures.</p>
           )}
-          <p class="hint">Vérifiez une fois avec un repère connu : visez le nord, l'écran doit afficher N.</p>
+          <button type="button" class="link" onClick={() => setIntro(true)}>Comment calibrer la boussole ?</button>
         </>
       ) : (
         <p class="muted">Lecture de la boussole…</p>
